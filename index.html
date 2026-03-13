@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>The Slime Laboratory</title>
+<script src="https://cdn.tailwindcss.com"></script>
+
+<style>
+
+body{
+background: radial-gradient(circle at center,#39ff8a 0%,#0a001a 60%);
+overflow:hidden;
+font-family:"Comic Sans MS", cursive;
+}
+
+/* TITLE */
+.title{
+text-shadow:0 0 15px #39ff14;
+}
+
+/* SLIME CONTAINER */
+.slime{
+width:340px;
+height:340px;
+position:relative;
+cursor:grab;
+}
+
+/* SLIME BODY */
+.slime-body{
+width:100%;
+height:100%;
+position:absolute;
+border-radius:55% 45% 60% 40% / 55% 45% 55% 45%;
+
+background:
+radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 40%),
+radial-gradient(circle at 70% 60%, rgba(255,255,255,.25), transparent 40%),
+radial-gradient(circle at center,#7aff7a88,#00c63f88);
+
+backdrop-filter: blur(6px);
+border:2px solid rgba(200,255,200,.4);
+
+box-shadow:
+inset 0 0 40px rgba(0,255,80,.6),
+0 0 30px rgba(0,255,80,.6);
+
+animation:slimePulse 5s infinite ease-in-out;
+}
+
+/* SLIME TEXTURE LAYER */
+.slime-body::after{
+content:"";
+position:absolute;
+width:100%;
+height:100%;
+border-radius:inherit;
+background-image:
+radial-gradient(circle,#ffffff11 2px,transparent 2px);
+background-size:20px 20px;
+opacity:.35;
+}
+
+/* WOBBLE */
+@keyframes slimePulse{
+0%{
+border-radius:55% 45% 60% 40% / 55% 45% 55% 45%;
+transform:scale(1);
+}
+50%{
+border-radius:45% 55% 40% 60% / 60% 40% 60% 40%;
+transform:scale(1.06);
+}
+100%{
+border-radius:55% 45% 60% 40% / 55% 45% 55% 45%;
+transform:scale(1);
+}
+}
+
+/* FLIES */
+.fly{
+position:absolute;
+font-size:18px;
+cursor:pointer;
+animation:buzz .5s infinite alternate;
+}
+
+@keyframes buzz{
+from{transform:translate(0,0)}
+to{transform:translate(2px,-2px)}
+}
+
+/* SPLAT */
+@keyframes splat{
+0%{transform:scale(1);opacity:1}
+100%{transform:scale(2.3);opacity:0}
+}
+
+.splat{
+animation:splat .35s forwards;
+}
+
+/* PLAYER */
+.player{
+background:rgba(0,0,0,.7);
+border:2px solid #39ff14;
+border-radius:18px;
+}
+
+/* DISC */
+.disc{
+width:90px;
+height:90px;
+border-radius:50%;
+background:
+radial-gradient(circle,#111 15%,#444 16%,#111 17%,#444 18%,#111 20%);
+border:4px solid #aaa;
+animation:spin 4s linear infinite;
+}
+
+.paused{
+animation-play-state:paused;
+}
+
+@keyframes spin{
+from{transform:rotate(0deg)}
+to{transform:rotate(360deg)}
+}
+
+</style>
+</head>
+
+<body class="h-screen flex flex-col items-center justify-center text-white">
+
+<h1 class="title text-4xl mb-6">🧪 The Slime Laboratory</h1>
+
+<div id="counter" class="mb-4 text-xl bg-purple-700 px-5 py-2 rounded-full">
+Flies Rescued: 0
+</div>
+
+<div class="slime" id="slime">
+<div class="slime-body" id="slimeBody"></div>
+</div>
+
+<!-- MUSIC PLAYER -->
+<div class="player fixed bottom-6 right-6 p-4 flex items-center gap-4">
+
+<div id="disc" class="disc"></div>
+
+<div class="flex flex-col">
+<label class="text-sm mb-1">Set the Vibe</label>
+
+<select id="musicSelect" class="text-black rounded px-2 py-1">
+<option value="">Pause</option>
+<option value="ambient">Squishy Ambient</option>
+<option value="jazz">Buzzy Jazz</option>
+<option value="synth">Slime Synth</option>
+</select>
+</div>
+
+<audio id="music"></audio>
+
+</div>
+
+
+<script>
+
+/* COUNTER */
+let rescued=0
+const counter=document.getElementById("counter")
+
+/* SLIME */
+const slime=document.getElementById("slime")
+const slimeBody=document.getElementById("slimeBody")
+
+/* AUDIO */
+const squish=new Audio("https://cdn.pixabay.com/audio/2022/03/15/audio_25c8a8b6f7.mp3")
+const pop=new Audio("https://cdn.pixabay.com/audio/2022/03/10/audio_2d7c7b1e5b.mp3")
+
+/* DRAG + STRETCH */
+let dragging=false
+
+slime.addEventListener("mousedown",()=>{
+dragging=true
+slime.style.cursor="grabbing"
+})
+
+window.addEventListener("mouseup",()=>{
+dragging=false
+slime.style.cursor="grab"
+})
+
+window.addEventListener("mousemove",(e)=>{
+
+if(!dragging) return
+
+let rect=slime.getBoundingClientRect()
+
+let dx=e.clientX-(rect.left+rect.width/2)
+let dy=e.clientY-(rect.top+rect.height/2)
+
+slimeBody.style.transform=
+`scale(${1+Math.abs(dx)/400},${1+Math.abs(dy)/400}) rotate(${dx/20}deg)`
+
+squish.currentTime=0
+squish.play()
+
+})
+
+/* RESET SHAPE */
+window.addEventListener("mouseup",()=>{
+slimeBody.style.transform=""
+})
+
+/* SPAWN FLIES */
+
+function spawnFly(){
+
+const fly=document.createElement("div")
+fly.className="fly"
+fly.innerText="🪰"
+
+let x=Math.random()*260+30
+let y=Math.random()*260+30
+
+fly.style.left=x+"px"
+fly.style.top=y+"px"
+
+slime.appendChild(fly)
+
+fly.onclick=()=>{
+
+fly.classList.add("splat")
+
+pop.currentTime=0
+pop.play()
+
+setTimeout(()=>{
+fly.remove()
+rescued++
+counter.innerText="Flies Rescued: "+rescued
+},300)
+
+}
+
+}
+
+/* FLY GENERATOR */
+
+setInterval(()=>{
+if(document.querySelectorAll(".fly").length<15){
+spawnFly()
+}
+},1200)
+
+/* MUSIC PLAYER */
+
+const disc=document.getElementById("disc")
+const music=document.getElementById("music")
+const select=document.getElementById("musicSelect")
+
+const tracks={
+ambient:"https://cdn.pixabay.com/audio/2022/03/15/audio_d64d2c4c6d.mp3",
+jazz:"https://cdn.pixabay.com/audio/2022/02/23/audio_6e1b2c0b5f.mp3",
+synth:"https://cdn.pixabay.com/audio/2021/10/25/audio_4fa1a7a3c2.mp3"
+}
+
+select.addEventListener("change",()=>{
+
+let v=select.value
+
+if(v===""){
+music.pause()
+disc.classList.add("paused")
+return
+}
+
+music.src=tracks[v]
+music.loop=true
+music.play()
+
+disc.classList.remove("paused")
+
+})
+
+</script>
+
+</body>
+</html>
